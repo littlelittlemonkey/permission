@@ -7,6 +7,10 @@ import java.security.MessageDigest;
 @Slf4j
 public class MD5Util {
 
+    public static void main(String[] args) {
+        String str = "123456";
+        System.out.println(encrypt(str));
+    }
     public final static String encrypt(String s) {
         char hexDigits[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
         try {
