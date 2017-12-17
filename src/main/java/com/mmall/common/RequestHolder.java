@@ -4,6 +4,9 @@ import com.mmall.model.SysUser;
 
 import javax.servlet.http.HttpServletRequest;
 
+/**
+ * 线程控制
+ */
 public class RequestHolder {
 
     private static final ThreadLocal<SysUser> userHolder = new ThreadLocal<SysUser>();
