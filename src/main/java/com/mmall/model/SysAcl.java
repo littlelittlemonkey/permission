@@ -1,7 +1,19 @@
 package com.mmall.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
 import java.util.Date;
 
+/**
+ * 权限点
+ */
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(of = {"id"})
 public class SysAcl {
     private Integer id;
 

@@ -2,6 +2,7 @@ package com.mmall.service;
 
 import com.google.common.base.Preconditions;
 import com.mmall.common.RequestHolder;
+import com.mmall.dao.SysAclMapper;
 import com.mmall.dao.SysAclModuleMapper;
 import com.mmall.exception.ParamException;
 import com.mmall.model.SysAclModule;
@@ -24,6 +25,8 @@ public class SysAclModuleService {
 
     @Autowired
     private SysAclModuleMapper sysAclModuleMapper;
+    @Autowired
+    private SysAclMapper sysAclMapper;
 
     /**
      * 新增
@@ -101,6 +104,18 @@ public class SysAclModuleService {
         sysAclModuleMapper.updateByPrimaryKeySelective(after);
     }
 
+
+    public void delete(int aclModuleId) {
+        SysAclModule aclModule = sysAclModuleMapper.selectByPrimaryKey(aclModuleId);
+        Preconditions.checkNotNull(aclModule, "待删除的权限模块不存在，无法删除");
+        if(sysAclModuleMapper.countByParentId(aclModule.getId()) > 0) {
+            throw new ParamException("当前模块下面有子模块，无法删除");
+        }
+        if (sysAclMapper.countByAclModuleId(aclModule.getId()) > 0) {
+            throw new ParamException("当前模块下面有用户，无法删除");
+        }
+        sysAclModuleMapper.deleteByPrimaryKey(aclModuleId);
+    }
     //同一层级是否存在相同名称的权限模块
     private boolean checkExist(Integer parentId, String aclModuleName, Integer deptId) {
         return sysAclModuleMapper.countByNameAndParentId(parentId, aclModuleName, deptId) > 0;
