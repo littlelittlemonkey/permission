@@ -2,6 +2,9 @@ package com.mmall.model;
 
 import java.util.Date;
 
+/**
+ * 权限模块
+ */
 public class SysAclModule {
     private Integer id;
 

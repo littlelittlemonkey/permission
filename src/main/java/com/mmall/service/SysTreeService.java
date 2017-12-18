@@ -1,11 +1,16 @@
 package com.mmall.service;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.mmall.dao.SysAclModuleMapper;
 import com.mmall.dao.SysDeptMapper;
 import com.mmall.dto.DeptLevelDto;
+import com.mmall.exception.ParamException;
+import com.mmall.model.SysAclModule;
 import com.mmall.model.SysDept;
+import com.mmall.param.AclModuleLevelDto;
 import com.mmall.utill.LevelUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +25,12 @@ public class SysTreeService {
 
     @Autowired
     private SysDeptMapper sysDeptMapper;
+    @Autowired
+    private SysAclModuleMapper sysAclModuleMapper;
 
     /**
      * 部门树
+     *
      * @return
      */
     public List<DeptLevelDto> deptTree() {
@@ -39,7 +47,8 @@ public class SysTreeService {
     }
 
     /**
-     *将部门list转化为树
+     * 将部门list转化为树
+     *
      * @param deptLevelList
      * @return
      */
@@ -76,9 +85,10 @@ public class SysTreeService {
 
     /**
      * 递归遍历树结构
+     *
      * @param deptLevelList 当前部门list
-     * @param level 当前level [0.1.2]
-     * @param levelDeptMap 需要遍历的<level,dept>
+     * @param level         当前level [0.1.2]
+     * @param levelDeptMap  需要遍历的<level,dept>
      */
     public void transformDeptTree(List<DeptLevelDto> deptLevelList, String level, Multimap<String, DeptLevelDto> levelDeptMap) {
         for (int i = 0; i < deptLevelList.size(); i++) {
@@ -103,4 +113,80 @@ public class SysTreeService {
             }
         }
     }
+
+    //    -----------------------------------
+
+    /**
+     * 获取权限模块树
+     * @return
+     */
+    public List<AclModuleLevelDto> aclModuleTree() {
+        List<SysAclModule> aclModuleList = sysAclModuleMapper.getAllAclModule();
+        List<AclModuleLevelDto> dtoList = Lists.newArrayList();
+        for (SysAclModule aclModule : aclModuleList) {
+            dtoList.add(AclModuleLevelDto.adapt(aclModule));
+        }
+        return aclModuleListToTree(dtoList);
+    }
+
+    /**
+     * 权限模块适配方法
+     * @param dtoList
+     * @return
+     */
+    public List<AclModuleLevelDto> aclModuleListToTree(List<AclModuleLevelDto> dtoList) {
+        if (CollectionUtils.isEmpty(dtoList)) {
+            return Lists.newArrayList();
+        }
+        // level -> [aclmodule1, aclmodule2, ...] Map<String, List<Object>>
+        Multimap<String, AclModuleLevelDto> levelAclModuleMap = ArrayListMultimap.create();
+        List<AclModuleLevelDto> rootList = Lists.newArrayList();
+
+        for (AclModuleLevelDto dto : dtoList) {
+            levelAclModuleMap.put(dto.getLevel(), dto);
+            if (LevelUtil.ROOT.equals(dto.getLevel())) {
+                rootList.add(dto);
+            }
+        }
+        //排序
+        Collections.sort(rootList, new Comparator<AclModuleLevelDto>() {
+            @Override
+            public int compare(AclModuleLevelDto o1, AclModuleLevelDto o2) {
+                return o1.getSeq() - o2.getSeq();
+            }
+        });
+        transformAclModuleTree(rootList, LevelUtil.ROOT, levelAclModuleMap);
+        return rootList;
+    }
+
+    public void transformAclModuleTree(List<AclModuleLevelDto> dtoList, String level, Multimap<String, AclModuleLevelDto> levelAclModuleMap) {
+        for (int i = 0; i < dtoList.size(); i++) {
+            AclModuleLevelDto dto = dtoList.get(i);
+            String nextLevel = LevelUtil.calculateLevel(level, dto.getId());
+            List<AclModuleLevelDto> tempList = (List<AclModuleLevelDto>) levelAclModuleMap.get(nextLevel);
+            if (CollectionUtils.isNotEmpty(tempList)) {
+                Collections.sort(tempList, new Comparator<AclModuleLevelDto>() {
+                    @Override
+                    public int compare(AclModuleLevelDto o1, AclModuleLevelDto o2) {
+                        return o1.getSeq() - o2.getSeq();
+                    }
+                });
+                dto.setAclModuleList(tempList);
+                transformAclModuleTree(tempList, nextLevel, levelAclModuleMap);
+            }
+        }
+    }
+
+//    public void delete(int aclModuleId) {
+//        SysAclModule aclModule = sysAclModuleMapper.selectByPrimaryKey(aclModuleId);
+//        Preconditions.checkNotNull(aclModule, "待删除的权限模块不存在，无法删除");
+//        if(sysAclModuleMapper.countByParentId(aclModule.getId()) > 0) {
+//            throw new ParamException("当前模块下面有子模块，无法删除");
+//        }
+//        if (sysAclMapper.countByAclModuleId(aclModule.getId()) > 0) {
+//            throw new ParamException("当前模块下面有用户，无法删除");
+//        }
+//        sysAclModuleMapper.deleteByPrimaryKey(aclModuleId);
+//    }
+
 }
