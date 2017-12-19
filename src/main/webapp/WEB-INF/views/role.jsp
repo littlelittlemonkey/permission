@@ -199,6 +199,30 @@
             });
         }
         function bindRoleClick() {
+            $(".role-delete").click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var deptId = $(this).attr("data-id");
+                var deptName = $(this).attr("data-name");
+                if (confirm("确定要删除角色[" + deptName + "]吗?")) {
+                    $.ajax({
+                        url: "/sys/role/delete.json",
+                        data: {
+                            id: deptId
+                        },
+                        success: function (result) {
+                            if (result.ret) {
+                                showMessage("删除角色[" + deptName + "]", "操作成功", true);
+                                loadDeptTree();
+                            } else {
+                                showMessage("删除角色[" + deptName + "]", result.msg, false);
+                            }
+                        }
+                    });
+                }
+            });
+
+
             $(".role-edit").click(function (e) {
                 e.preventDefault();
                 e.stopPropagation();

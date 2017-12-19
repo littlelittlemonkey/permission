@@ -255,16 +255,16 @@ public class SysTreeService {
             bindAclsWithOrder(dto.getAclModuleList(), moduleIdAclMap);
         }
     }
-//    public void delete(int aclModuleId) {
-//        SysAclModule aclModule = sysAclModuleMapper.selectByPrimaryKey(aclModuleId);
-//        Preconditions.checkNotNull(aclModule, "待删除的权限模块不存在，无法删除");
-//        if(sysAclModuleMapper.countByParentId(aclModule.getId()) > 0) {
-//            throw new ParamException("当前模块下面有子模块，无法删除");
-//        }
-//        if (sysAclMapper.countByAclModuleId(aclModule.getId()) > 0) {
-//            throw new ParamException("当前模块下面有用户，无法删除");
-//        }
-//        sysAclModuleMapper.deleteByPrimaryKey(aclModuleId);
-//    }
+    public List<AclModuleLevelDto> userAclTree(int userId) {
+        List<SysAcl> userAclList = sysCoreService.getUserAclList(userId);
+        List<AclDto> aclDtoList = Lists.newArrayList();
+        for (SysAcl acl : userAclList) {
+            AclDto dto = AclDto.adapt(acl);
+            dto.setHasAcl(true);
+            dto.setChecked(true);
+            aclDtoList.add(dto);
+        }
+        return aclListToTree(aclDtoList);
+    }
 
 }

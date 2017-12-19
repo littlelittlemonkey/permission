@@ -73,32 +73,53 @@ public class SysRoleController {
         return JsonData.success();
     }
 
+    /**
+     * 修改角色用户关系，即角色新增或删除用户
+     * @param roleId
+     * @param userIds
+     * @return
+     */
     @RequestMapping("/changeUsers.json")
     @ResponseBody
     public JsonData changeUsers(@RequestParam("roleId") int roleId, @RequestParam(value = "userIds", required = false, defaultValue = "") String userIds) {
+        //传过来的是一组userId字符串
         List<Integer> userIdList = StringUtil.splitToListInt(userIds);
         sysRoleUserService.changeRoleUsers(roleId, userIdList);
         return JsonData.success();
     }
 
+    /**
+     * 获取当前角色下的用户
+     * @param roleId
+     * @return
+     */
     @RequestMapping("/users.json")
     @ResponseBody
     public JsonData users(@RequestParam("roleId") int roleId) {
         //根据角色id获取用户列表
         List<SysUser> selectedUserList = sysRoleUserService.getListByRoleId(roleId);
+        //所有用户，新增删除用
         List<SysUser> allUserList = sysUserService.getAll();
+        //没有选中的用户:所有用户-已选中
         List<SysUser> unselectedUserList = Lists.newArrayList();
-
+        //确定没有选中的用户
         Set<Integer> selectedUserIdSet = selectedUserList.stream().map(sysUser -> sysUser.getId()).collect(Collectors.toSet());
-        for(SysUser sysUser : allUserList) {
+        for (SysUser sysUser : allUserList) {
             if (sysUser.getStatus() == 1 && !selectedUserIdSet.contains(sysUser.getId())) {
                 unselectedUserList.add(sysUser);
             }
         }
         // selectedUserList = selectedUserList.stream().filter(sysUser -> sysUser.getStatus() != 1).collect(Collectors.toList());
+        //页面展示可操作的用户
         Map<String, List<SysUser>> map = Maps.newHashMap();
         map.put("selected", selectedUserList);
         map.put("unselected", unselectedUserList);
         return JsonData.success(map);
+    }
+    @RequestMapping("/delete.json")
+    @ResponseBody
+    public JsonData delete(@RequestParam("id") int id){
+        sysRoleService.delete(id);
+        return JsonData.success();
     }
 }

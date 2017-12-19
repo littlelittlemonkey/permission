@@ -6,8 +6,11 @@ import com.google.common.collect.Lists;
 import com.mmall.common.RequestHolder;
 import com.mmall.dao.SysRoleAclMapper;
 import com.mmall.dao.SysRoleMapper;
+import com.mmall.dao.SysRoleUserMapper;
 import com.mmall.exception.ParamException;
+import com.mmall.model.SysDept;
 import com.mmall.model.SysRole;
+import com.mmall.model.SysUser;
 import com.mmall.param.RoleParam;
 import com.mmall.utill.BeanValidator;
 import com.mmall.utill.IpUtil;
@@ -27,6 +30,8 @@ public class SysRoleService {
     private SysRoleAclMapper sysRoleAclMapper;
     @Autowired
     private SysRoleMapper sysRoleMapper;
+    @Autowired
+    private SysRoleUserMapper sysRoleUserMapper;
 
 
     public void save(RoleParam param) {
@@ -59,6 +64,28 @@ public class SysRoleService {
         after.setOperateTime(new Date());
         sysRoleMapper.updateByPrimaryKeySelective(after);
 //        sysLogService.saveRoleLog(before, after);
+    }
+
+    public List<SysRole> getRoleListByUserId(int userId) {
+        List<Integer> roleIdList = sysRoleUserMapper.getRoleIdListByUserId(userId);
+        if (CollectionUtils.isEmpty(roleIdList)) {
+            return Lists.newArrayList();
+        }
+        return sysRoleMapper.getByIdList(roleIdList);
+    }
+
+    /**
+     * 删除
+     * @param roleId
+     */
+    public void delete(int roleId) {
+        SysRole role = sysRoleMapper.selectByPrimaryKey(roleId);
+        Preconditions.checkNotNull(role, "待删除的角色不存在，无法删除");
+        List<Integer> userId = sysRoleUserMapper.getUserIdListByRoleId(role.getId());
+        if (CollectionUtils.isNotEmpty(userId)) {
+            throw new ParamException("当前角色下有用户，无法删除");
+        }
+        sysRoleMapper.deleteByPrimaryKey(roleId);
     }
 
     public List<SysRole> getAll() {

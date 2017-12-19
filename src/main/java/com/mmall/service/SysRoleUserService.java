@@ -40,6 +40,7 @@ public class SysRoleUserService {
     }
 
     public void changeRoleUsers(int roleId, List<Integer> userIdList) {
+        //获取当前角色的所有用户
         List<Integer> originUserIdList = sysRoleUserMapper.getUserIdListByRoleId(roleId);
         if (originUserIdList.size() == userIdList.size()) {
             Set<Integer> originUserIdSet = Sets.newHashSet(originUserIdList);
@@ -53,6 +54,11 @@ public class SysRoleUserService {
         saveRoleUserLog(roleId, originUserIdList, userIdList);
     }
 
+    /**
+     * 更新用户
+     * @param roleId
+     * @param userIdList
+     */
     @Transactional
     public void updateRoleUsers(int roleId, List<Integer> userIdList) {
         sysRoleUserMapper.deleteByRoleId(roleId);
@@ -68,6 +74,7 @@ public class SysRoleUserService {
         }
         sysRoleUserMapper.batchInsert(roleUserList);
     }
+    //日志
     private void saveRoleUserLog(int roleId, List<Integer> before, List<Integer> after) {
         SysLogWithBLOBs sysLog = new SysLogWithBLOBs();
         sysLog.setType(LogType.TYPE_ROLE_USER);
