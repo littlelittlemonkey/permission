@@ -124,4 +124,8 @@ public class SysUserService {
     public SysUser findByKeyword(String keyword){
         return sysUserMapper.findByKeyword(keyword);
     }
+
+    public List<SysUser> getAll() {
+        return sysUserMapper.getAll();
+    }
 }
