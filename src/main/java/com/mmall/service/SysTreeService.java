@@ -1,13 +1,14 @@
 package com.mmall.service;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.mmall.dao.SysAclMapper;
 import com.mmall.dao.SysAclModuleMapper;
 import com.mmall.dao.SysDeptMapper;
+import com.mmall.dto.AclDto;
 import com.mmall.dto.DeptLevelDto;
-import com.mmall.exception.ParamException;
+import com.mmall.model.SysAcl;
 import com.mmall.model.SysAclModule;
 import com.mmall.model.SysDept;
 import com.mmall.param.AclModuleLevelDto;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SysTreeService {
@@ -27,7 +30,10 @@ public class SysTreeService {
     private SysDeptMapper sysDeptMapper;
     @Autowired
     private SysAclModuleMapper sysAclModuleMapper;
-
+    @Autowired
+    private SysCoreService sysCoreService;
+    @Autowired
+    private SysAclMapper sysAclMapper;
     /**
      * 部门树
      *
@@ -177,7 +183,78 @@ public class SysTreeService {
         }
     }
 
+    /**
+     * 展示角色树
+     * @param roleId
+     * @return
+     */
+    public List<AclModuleLevelDto> roleTree(int roleId) {
+        // 1、当前用户已分配的权限点
+        List<SysAcl> userAclList = sysCoreService.getCurrentUserAclList();
+        // 2、当前角色分配的权限点
+        List<SysAcl> roleAclList = sysCoreService.getRoleAclList(roleId);
+        // 3、当前系统所有权限点
+        List<AclDto> aclDtoList = Lists.newArrayList();
 
+        //用户拥有的权限
+        Set<Integer> userAclIdSet = userAclList.stream().map(sysAcl -> sysAcl.getId()).collect(Collectors.toSet());
+        //角色拥有的权限
+        Set<Integer> roleAclIdSet = roleAclList.stream().map(sysAcl -> sysAcl.getId()).collect(Collectors.toSet());
+        //系统所有的权限
+        List<SysAcl> allAclList = sysAclMapper.getAll();
+        //遍历所有权限，如果用户拥有此权限，则设置为true
+        for (SysAcl acl : allAclList) {
+            AclDto dto = AclDto.adapt(acl);
+            if (userAclIdSet.contains(acl.getId())) {
+                dto.setHasAcl(true);
+            }
+            if (roleAclIdSet.contains(acl.getId())) {
+                dto.setChecked(true);
+            }
+            aclDtoList.add(dto);
+        }
+        return aclListToTree(aclDtoList);
+    }
+
+    /**
+     * 权限树
+     * @param aclDtoList
+     * @return
+     */
+    public List<AclModuleLevelDto> aclListToTree(List<AclDto> aclDtoList) {
+        if (CollectionUtils.isEmpty(aclDtoList)) {
+            return Lists.newArrayList();
+        }
+        List<AclModuleLevelDto> aclModuleLevelList = aclModuleTree();
+
+        Multimap<Integer, AclDto> moduleIdAclMap = ArrayListMultimap.create();
+        for(AclDto acl : aclDtoList) {
+            if (acl.getStatus() == 1) {
+                moduleIdAclMap.put(acl.getAclModuleId(), acl);
+            }
+        }
+        bindAclsWithOrder(aclModuleLevelList, moduleIdAclMap);
+        return aclModuleLevelList;
+    }
+
+    public void bindAclsWithOrder(List<AclModuleLevelDto> aclModuleLevelList, Multimap<Integer, AclDto> moduleIdAclMap) {
+        if (CollectionUtils.isEmpty(aclModuleLevelList)) {
+            return;
+        }
+        for (AclModuleLevelDto dto : aclModuleLevelList) {
+            List<AclDto> aclDtoList = (List<AclDto>)moduleIdAclMap.get(dto.getId());
+            if (CollectionUtils.isNotEmpty(aclDtoList)) {
+                Collections.sort(aclDtoList, new Comparator<AclDto>() {
+                    @Override
+                    public int compare(AclDto o1, AclDto o2) {
+                        return o1.getSeq() - o2.getSeq();
+                    }
+                });
+                dto.setAclList(aclDtoList);
+            }
+            bindAclsWithOrder(dto.getAclModuleList(), moduleIdAclMap);
+        }
+    }
 //    public void delete(int aclModuleId) {
 //        SysAclModule aclModule = sysAclModuleMapper.selectByPrimaryKey(aclModuleId);
 //        Preconditions.checkNotNull(aclModule, "待删除的权限模块不存在，无法删除");
